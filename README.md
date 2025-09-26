@@ -53,10 +53,6 @@ By default uvicorn will serve on `http://127.0.0.1:8000`. If the project uses a 
 
 Open the interactive docs at `http://127.0.0.1:8000/docs` (Swagger UI) or the Redoc docs at `/redoc`.
 
-## Configuration
-
-- The project currently uses the files in `Backend/` for DB and security configuration. If there are environment variables or a `.env` file support, set values before starting the server. Look in `Backend/database.py` and `Backend/security.py` for relevant configuration keys (database URL, secret keys, token expiration).
-
 ## API Overview
 
 This project provides the following logical endpoints:
@@ -96,24 +92,10 @@ $token = ($tokenResponse | ConvertFrom-Json).access_token
 curl -Method GET -Uri http://127.0.0.1:8000/users/me -Headers @{ Authorization = "Bearer $token" }
 ```
 
-Adjust username/password and endpoints to match your implementation.
-
 ## Data models and schemas
 
 - `models.py` - SQLAlchemy ORM models for User, Role, Post, Comment
 - `schemas.py` - Pydantic models used for request validation and responses. Typical shapes include UserCreate, UserRead, Token, PostCreate, PostRead, CommentCreate, etc.
-
-## License
-
-This repository doesn't include an explicit license file. If you want permissive usage, add an `LICENSE` file (e.g., MIT) and note it here.
-
-## Next steps
-
-- Wire up a persistent database (Postgres or SQLite for quick starts). Ensure `Backend/database.py` points to the correct database URL.
-- Add role management endpoints (assign roles to users).
-- Harden security: refresh tokens, revoke tokens, rate limiting.
-
----
 
 ## How RBAC (Role-Based Access Control) works in this project
 
@@ -140,9 +122,3 @@ How the pieces interact in a request:
 2. FastAPI's dependency `get_current_user` decodes the token and returns the `User` object from the DB (so subsequent checks can inspect `user.roles`).
 3. A route can require a role using `Depends(require_role("admin"))` (or several roles). If the user doesn't have a matching role, the dependency raises 403.
 4. For ownership checks (posts/comments) the route can use `Depends(is_admin_or_owner)` which performs both existence and permission checks and returns the post and user context when allowed.
-
-Design notes:
-
-- Roles are stored in the DB as simple strings. This is flexible but not hierarchical. If you need role hierarchies (e.g., `admin` implies `author`), either assign both roles to admin accounts or enhance the logic.
-- The JWT only contains the username (`sub`) and expiration; role membership is looked up from the database for each request. This keeps tokens small and allows role changes to take effect immediately (no token revocation required for role changes), but it does add a DB lookup per authenticated request.
-- For higher scale, you could embed role claims into the token (with care for revocation) or cache role lookups.
